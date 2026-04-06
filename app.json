@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "AquaPulse",
+    "slug": "aquapulse",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "aquapulse",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0A1628"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.aquapulse.seafeeder"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0A1628"
+      },
+      "package": "com.aquapulse.seafeeder"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0A1628"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#00D4FF"
+        }
+      ],
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
