@@ -25,6 +25,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { user, signOut } = useAuthStore();
   const [notifs, setNotifs] = React.useState(true);
+  const [darkMode, setDarkMode] = React.useState(true);
   const { feeders, alerts } = useFeederStore();
 
   const handleLogout = async () => {
@@ -76,14 +77,6 @@ export default function SettingsScreen() {
           </View>
           <Text style={styles.versionText}>{feeders.length} deployed</Text>
         </View>
-        <View style={styles.divider} />
-        <View style={styles.settingRow}>
-          <View style={styles.settingInfo}>
-            <Ionicons name="notifications-outline" size={20} color={Colors.textPrimary} />
-            <Text style={styles.settingText}>Unread Alerts</Text>
-          </View>
-          <Text style={styles.versionText}>{alerts.filter(a => !a.isRead).length}</Text>
-        </View>
       </View>
 
       <Text style={styles.sectionLabel}>PREFERENCES</Text>
@@ -101,8 +94,23 @@ export default function SettingsScreen() {
             <Ionicons name="moon-outline" size={20} color={Colors.textPrimary} />
             <Text style={styles.settingText}>Dark Mode</Text>
           </View>
-          <Switch value={true} onValueChange={() => {}} trackColor={{ true: Colors.accent, false: Colors.backgroundSecondary }} thumbColor={Colors.white} />
+          <Switch value={darkMode} onValueChange={setDarkMode} trackColor={{ true: Colors.accent, false: Colors.backgroundSecondary }} thumbColor={Colors.white} />
         </View>
+      </View>
+
+      <Text style={styles.sectionLabel}>LEGAL</Text>
+      <View style={styles.settingGroup}>
+        <SettingRow 
+          icon="document-text-outline" 
+          label="Terms of Service" 
+          onPress={() => router.push('/(app)/terms' as any)} 
+        />
+        <View style={styles.divider} />
+        <SettingRow 
+          icon="shield-checkmark-outline" 
+          label="Privacy Policy" 
+          onPress={() => router.push('/(app)/privacy' as any)} 
+        />
       </View>
 
       <Text style={styles.sectionLabel}>SYSTEM</Text>
@@ -122,7 +130,7 @@ export default function SettingsScreen() {
             <Ionicons name="code-slash-outline" size={20} color={Colors.textPrimary} />
             <Text style={styles.settingText}>Version</Text>
           </View>
-          <Text style={styles.versionText}>v1.0.0 (Demo)</Text>
+          <Text style={styles.versionText}>v2.0.1 (Stable)</Text>
         </View>
       </View>
 

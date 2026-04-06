@@ -3,9 +3,12 @@
 
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, Platform } from 'react-native';
 import { useFeederStore } from '../../store/feederStore';
 import { Colors, FontSize } from '../../constants/theme';
+import { useEffect } from 'react';
+import * as Notifications from 'expo-notifications';
+import * as Location from 'expo-location';
 
 function TabBadge({ count }: { count: number }) {
   if (count === 0) return null;
@@ -42,6 +45,24 @@ export default function AppLayout() {
   const feeders = useFeederStore((s) => s.feeders);
   const feederAlerts = feeders.flatMap(f => f.alerts || []);
   const unreadCount = [...storeAlerts, ...feederAlerts].filter(a => !a.isRead).length;
+
+  useEffect(() => {
+    async function requestPermissions() {
+      try {
+        const { status: notifStatus } = await Notifications.getPermissionsAsync();
+        if (notifStatus !== 'granted') {
+          await Notifications.requestPermissionsAsync();
+        }
+        const { status: locStatus } = await Location.getForegroundPermissionsAsync();
+        if (locStatus !== 'granted') {
+          await Location.requestForegroundPermissionsAsync();
+        }
+      } catch (error) {
+        console.warn("Permission request error:", error);
+      }
+    }
+    requestPermissions();
+  }, []);
 
   return (
     <Tabs
@@ -102,6 +123,9 @@ export default function AppLayout() {
           ),
         }}
       />
+      <Tabs.Screen name="terms" options={{ href: null }} />
+      <Tabs.Screen name="privacy" options={{ href: null }} />
+      <Tabs.Screen name="about" options={{ href: null }} />
     </Tabs>
   );
 }

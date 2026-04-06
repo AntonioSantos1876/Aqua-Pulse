@@ -4,6 +4,32 @@
 import { create } from 'zustand';
 import { UserProfile } from '../types/auth';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const Storage = {
+  setItemAsync: async (key: string, value: string) => {
+    if (Platform.OS === 'web') {
+      await AsyncStorage.setItem(key, value);
+    } else {
+      await SecureStore.setItemAsync(key, value);
+    }
+  },
+  getItemAsync: async (key: string) => {
+    if (Platform.OS === 'web') {
+      return await AsyncStorage.getItem(key);
+    } else {
+      return await SecureStore.getItemAsync(key);
+    }
+  },
+  deleteItemAsync: async (key: string) => {
+    if (Platform.OS === 'web') {
+      await AsyncStorage.removeItem(key);
+    } else {
+      await SecureStore.deleteItemAsync(key);
+    }
+  }
+};
 
 const STORAGE_KEY = 'aquapulse_session';
 
@@ -38,18 +64,18 @@ export const useAuthStore = create<AuthStore>((set) => ({
     // Mock: accept any non-empty credentials
     await new Promise((r) => setTimeout(r, 1200));
     const user = { ...MOCK_USER, email };
-    await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify({ user, onboarded: true }));
+    await Storage.setItemAsync(STORAGE_KEY, JSON.stringify({ user, onboarded: true }));
     set({ user, isAuthenticated: true, hasCompletedOnboarding: true });
   },
 
   signOut: async () => {
-    await SecureStore.deleteItemAsync(STORAGE_KEY);
+    await Storage.deleteItemAsync(STORAGE_KEY);
     set({ user: null, isAuthenticated: false, hasCompletedOnboarding: false });
   },
 
   restoreSession: async () => {
     try {
-      const raw = await SecureStore.getItemAsync(STORAGE_KEY);
+      const raw = await Storage.getItemAsync(STORAGE_KEY);
       if (raw) {
         const { user, onboarded } = JSON.parse(raw);
         set({ user, isAuthenticated: true, hasCompletedOnboarding: onboarded });
@@ -62,9 +88,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   completeOnboarding: async () => {
-    const raw = await SecureStore.getItemAsync(STORAGE_KEY);
+    const raw = await Storage.getItemAsync(STORAGE_KEY);
     const existing = raw ? JSON.parse(raw) : {};
-    await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify({ ...existing, onboarded: true }));
+    await Storage.setItemAsync(STORAGE_KEY, JSON.stringify({ ...existing, onboarded: true }));
     set({ hasCompletedOnboarding: true });
   },
 }));

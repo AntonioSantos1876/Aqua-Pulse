@@ -241,45 +241,122 @@ export const useFeederStore = create<FeederStore>((set, get) => ({
   tickSimulation: () => {
     set((state) => {
       const nextFeeders = state.feeders.map((feeder) => {
+        let baseUpdates: Partial<FeederDevice> = {};
+
+        // Simulate environmental noise for all online feeders, even if faulted
+        if (feeder.online) {
+          // Random walk for tilt (0.0 to 3.5 degrees)
+          const newTilt = Math.max(0, Math.min(3.5, feeder.tiltAngleDeg + (Math.random() - 0.5) * 0.8));
+          // Slight wobble for battery voltage
+          const newBattery = Math.max(11.0, Math.min(12.8, feeder.batteryVoltage + (Math.random() - 0.5) * 0.02));
+          // Signal strength wobble (70 to 100)
+          const newSignal = Math.max(70, Math.min(100, feeder.signalStrength + (Math.random() - 0.5) * 6));
+
+          baseUpdates = {
+            tiltAngleDeg: parseFloat(newTilt.toFixed(1)),
+            batteryVoltage: parseFloat(newBattery.toFixed(2)),
+            signalStrength: Math.round(newSignal),
+          };
+        }
+
+        // Special Demo Logic for Delta Feeder Refill Sequence
+        if (feeder.name === 'Delta Feeder') {
+          if (feeder.hopperPercent < 0) {
+            const timer = feeder.hopperPercent + 1;
+            if (timer === 0) {
+              return { ...feeder, ...baseUpdates, hopperPercent: 1, lastFaultMessage: 'Refilling...', hopperStatus: 'LOW' as any, lastUpdatedAt: new Date().toISOString() };
+            }
+            return { ...feeder, ...baseUpdates, hopperPercent: timer, lastUpdatedAt: new Date().toISOString() };
+          }
+          if (feeder.hopperPercent > 0 && feeder.hopperPercent < 100 && feeder.lastFaultMessage === 'Refilling...') {
+            const newLvl = Math.min(100, feeder.hopperPercent + 20);
+            if (newLvl === 100) {
+              setTimeout(() => {
+                useFeederStore.getState().addAlert({
+                  feederId: feeder.id,
+                  title: 'Refill Complete',
+                  message: 'Delta Feeder hopper refilled to 100%. Resuming scheduled feed.',
+                  severity: 'info',
+                  type: 'consumables',
+                  isRead: false
+                });
+              }, 0);
+              return { ...feeder, ...baseUpdates, hopperPercent: 100, hopperStatus: 'OK' as any, lastFaultMessage: '', state: 'PRECHECK' as any, feedingActive: true, lastUpdatedAt: new Date().toISOString() };
+            }
+            return { ...feeder, ...baseUpdates, hopperPercent: newLvl, lastUpdatedAt: new Date().toISOString() };
+          }
+        }
+
         if (!feeder.feedingActive || feeder.state === 'IDLE' || feeder.state === 'FAULT' || feeder.state === 'ESTOP') {
+          // If not feeding, just apply base updates and return
+          if (Object.keys(baseUpdates).length > 0) {
+             return { ...feeder, ...baseUpdates, lastUpdatedAt: new Date().toISOString() };
+          }
           return feeder;
         }
 
         const currentIndex = FEED_SEQUENCE.indexOf(feeder.state);
         if (currentIndex === -1 || currentIndex === FEED_SEQUENCE.length - 1) {
-          return feeder;
+          return { ...feeder, ...baseUpdates, lastUpdatedAt: new Date().toISOString() };
         }
 
         const nextState = FEED_SEQUENCE[currentIndex + 1];
-        const updates: Partial<FeederDevice> = { state: nextState };
+        const seqUpdates: Partial<FeederDevice> = { state: nextState };
 
         if (nextState === 'SPINUP') {
-          updates.spreaderRunning = true;
-          updates.spreaderCurrentLevel = feeder.spreaderMaxLevel;
+          seqUpdates.spreaderRunning = true;
+          seqUpdates.spreaderCurrentLevel = feeder.spreaderMaxLevel;
         }
         if (nextState === 'DISPENSE') {
-          updates.gateStatus = 'OPEN';
-          updates.gatePositionSteps = 100;
+          seqUpdates.gateStatus = 'OPEN';
+          seqUpdates.gatePositionSteps = 100;
+          if (feeder.name === 'Delta Feeder') {
+            const newHopper = Math.max(0, feeder.hopperPercent - 25);
+            seqUpdates.hopperPercent = newHopper;
+            if (newHopper === 0) {
+              seqUpdates.state = 'FAULT';
+              seqUpdates.hopperPercent = -4; // wait 4 ticks (6 seconds) before refilling
+              seqUpdates.lastFaultMessage = 'Feed Empty. Requesting Refill.';
+              seqUpdates.feedingActive = false;
+              seqUpdates.hopperStatus = 'CRITICAL';
+              setTimeout(() => {
+                useFeederStore.getState().addAlert({
+                  feederId: feeder.id,
+                  title: 'Hopper Empty',
+                  message: 'Delta Feeder has exhausted its feed supply and halted. Requesting automated refill.',
+                  severity: 'critical',
+                  type: 'consumables',
+                  isRead: false
+                });
+              }, 0);
+            }
+          }
         }
         if (nextState === 'CLEARING') {
-          updates.gateStatus = 'CLOSED';
-          updates.gatePositionSteps = 0;
-          updates.spreaderCurrentLevel = Math.max(1, feeder.spreaderCurrentLevel - 3);
+          seqUpdates.gateStatus = 'CLOSED';
+          seqUpdates.gatePositionSteps = 0;
+          seqUpdates.spreaderCurrentLevel = Math.max(1, feeder.spreaderCurrentLevel - 3);
           const newHopper = Math.max(0, feeder.hopperPercent - 1.5);
-          updates.hopperPercent = newHopper;
-          updates.hopperStatus = newHopper < 5 ? 'CRITICAL' : newHopper < 20 ? 'LOW' : 'OK';
+          seqUpdates.hopperPercent = parseFloat(newHopper.toFixed(1));
+          seqUpdates.hopperStatus = newHopper < 5 ? 'CRITICAL' : newHopper < 20 ? 'LOW' : 'OK';
         }
         if (nextState === 'COMPLETE') {
-          updates.spreaderRunning = false;
-          updates.spreaderCurrentLevel = 0;
-          updates.feedCycleCount = feeder.feedCycleCount + 1;
-          updates.lastFeedResult = 'SUCCESS';
+          seqUpdates.spreaderRunning = false;
+          seqUpdates.spreaderCurrentLevel = 0;
+          seqUpdates.feedCycleCount = feeder.feedCycleCount + 1;
+          seqUpdates.lastFeedResult = 'SUCCESS';
         }
         if (nextState === 'IDLE') {
-          updates.feedingActive = false;
+          // Keep Delta Feeder running infinitely for demo purposes
+          if (feeder.name === 'Delta Feeder') {
+            seqUpdates.state = 'PRECHECK';
+            seqUpdates.feedingActive = true;
+          } else {
+            seqUpdates.feedingActive = false;
+          }
         }
 
-        return { ...feeder, ...updates, lastUpdatedAt: new Date().toISOString() };
+        return { ...feeder, ...baseUpdates, ...seqUpdates, lastUpdatedAt: new Date().toISOString() };
       });
 
       return { feeders: nextFeeders };

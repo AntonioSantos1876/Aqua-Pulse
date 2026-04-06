@@ -186,8 +186,56 @@ export const MOCK_FEEDER_GAMMA: FeederDevice = {
   ],
 };
 
+// FEEDER 4 — Delta (Running continuously)
+export const MOCK_FEEDER_DELTA: FeederDevice = {
+  id: '22222222-2222-2222-2222-222222222224',
+  deviceId: 'FDR-004',
+  name: 'Delta Feeder',
+  zoneId: '11111111-1111-1111-1111-111111111111',
+  online: true,
+  state: 'SPINUP', // Active feeding state
+  batteryVoltage: 13.1,
+  batteryStatus: 'OK',
+  hopperPercent: 95,
+  hopperStatus: 'OK',
+  tiltAngleDeg: 1.0,
+  tiltStatus: 'OK',
+  lidClosed: true,
+  estopActive: false,
+  remoteEstopLatched: false,
+  spreaderMaxLevel: 10,
+  spreaderCurrentLevel: 10,
+  spreaderRunning: true,
+  spreaderStatus: 'OK',
+  gateStatus: 'CLOSED',
+  gatePositionSteps: 0,
+  feedingActive: true,
+  feedCycleCount: 512,
+  lastFeedResult: 'SUCCESS',
+  lastFaultMessage: '',
+  signalStrength: -30,
+  locationName: 'Deep Water Pen 1',
+  lastUpdatedAt: subMinutes(now, 0).toISOString(),
+  createdAt: subHours(now, 50).toISOString(),
+  
+  profile: {
+    feederId: '22222222-2222-2222-2222-222222222224',
+    fishType: 'Trout',
+    cageSize: '20m x 20m',
+    fishAge: 'Fingerling',
+    stockCount: 12000,
+    hopperWarningThreshold: 20,
+    batteryWarningThreshold: 11.5,
+    batteryCriticalThreshold: 10.8,
+    tiltCriticalThreshold: 15,
+  },
+  telemetryHistory: makeTelemetryHistory('22222222-2222-2222-2222-222222222224', 95, 13.1),
+  alerts: [],
+};
+
 export const MOCK_FEEDERS: FeederDevice[] = [
   MOCK_FEEDER_ALPHA,
   MOCK_FEEDER_BETA,
   MOCK_FEEDER_GAMMA,
+  MOCK_FEEDER_DELTA,
 ];
