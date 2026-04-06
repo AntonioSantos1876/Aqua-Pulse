@@ -127,13 +127,17 @@ export default function DashboardScreen() {
           </View>
         </View>
         
-        <View style={styles.heroStats}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.heroStats}
+        >
           <StatCard label="Online" value={onlineCount} icon="wifi" color={Colors.statusOnline} />
           <StatCard label="Offline" value={offlineCount} icon="wifi-outline" color={Colors.textMuted} />
           <StatCard label="Fault" value={faultCount} icon="warning" color={Colors.statusOffline} />
           <StatCard label="Low Feed" value={lowHopperCount} icon="beaker" color={Colors.statusWarning} />
           <StatCard label="Feeding" value={runningCount} icon="water" color={Colors.accent} />
-        </View>
+        </ScrollView>
       </LinearGradient>
 
       {/* Quick Actions Row */}

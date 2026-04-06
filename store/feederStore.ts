@@ -245,16 +245,28 @@ export const useFeederStore = create<FeederStore>((set, get) => ({
 
         // Simulate environmental noise for all online feeders, even if faulted
         if (feeder.online) {
+          // Solar Charging Logic
+          let newBattery = feeder.batteryVoltage;
+          if (feeder.feedingActive) {
+            // Drain battery while feeding (simulating motor load)
+            newBattery = Math.max(10.5, feeder.batteryVoltage - 0.04);
+          } else {
+            // Charge battery while idle (simulating solar charging)
+            newBattery = Math.min(13.2, feeder.batteryVoltage + 0.01 + (Math.random() * 0.005));
+          }
+
           // Random walk for tilt (0.0 to 3.5 degrees)
           const newTilt = Math.max(0, Math.min(3.5, feeder.tiltAngleDeg + (Math.random() - 0.5) * 0.8));
-          // Slight wobble for battery voltage
-          const newBattery = Math.max(11.0, Math.min(12.8, feeder.batteryVoltage + (Math.random() - 0.5) * 0.02));
           // Signal strength wobble (70 to 100)
           const newSignal = Math.max(70, Math.min(100, feeder.signalStrength + (Math.random() - 0.5) * 6));
+
+          // Determine battery status based on new voltage
+          const newStatus: any = newBattery > 12.0 ? 'OK' : newBattery > 11.2 ? 'LOW' : 'CRITICAL';
 
           baseUpdates = {
             tiltAngleDeg: parseFloat(newTilt.toFixed(1)),
             batteryVoltage: parseFloat(newBattery.toFixed(2)),
+            batteryStatus: newStatus,
             signalStrength: Math.round(newSignal),
           };
         }
